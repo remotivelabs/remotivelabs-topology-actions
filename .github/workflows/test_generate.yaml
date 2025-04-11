@@ -1,0 +1,46 @@
+name: remotive-topology generate CI
+
+on:
+  push:
+    branches:
+      - '**'
+
+jobs:
+  test_generate:
+    runs-on: ubuntu-latest
+    name: Test generate action
+
+    strategy:
+      matrix:
+        version: [ 'latest', '0.11.1', '0.10.1', '0.9.1', '0.8.6']
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Generate with newline separated paths
+        uses: ./generate
+        with:
+          version: ${{ matrix.version }}
+          name: test-generate1
+          path: |
+            .github/testdata/main.instance.yaml
+            .github/testdata/settings.instance.yaml
+          output: build/
+          organization: ${{ secrets.REMOTIVE_CLOUD_ORGANIZATION }}
+          auth_token: ${{ secrets.REMOTIVE_CLOUD_AUTH_TOKEN }}
+      - name: Verify compose file is generated
+        run: test -f ./build/test-generate1/docker-compose.yml
+        shell: bash
+
+      - name: Generate with space separated paths
+        uses: ./generate
+        with:
+          version: ${{ matrix.version }}
+          name: test-generate2
+          path: .github/testdata/main.instance.yaml .github/testdata/settings.instance.yaml
+          output: build/
+          organization: ${{ secrets.REMOTIVE_CLOUD_ORGANIZATION }}
+          auth_token: ${{ secrets.REMOTIVE_CLOUD_AUTH_TOKEN }}
+      - name: Verify compose file is generated
+        run: test -f ./build/test-generate2/docker-compose.yml
+        shell: bash
