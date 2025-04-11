@@ -1,0 +1,69 @@
+name: RemotiveTopology generate
+description: Generate a Docker Compose file from one or more RemotiveTopology description files
+
+inputs:
+  version:
+    description: |
+      Version of the RemotiveTopology CLI.
+      See https://hub.docker.com/r/remotivelabs/remotive-topology/tags
+    default: 'latest'
+  name:
+    description: Optional name of the RemotiveTopology
+    required: false
+  path:
+    description: Newline or space separated paths to one or more RemotiveTopology description files, relative the workspace root
+    required: true
+  output:
+    description: Path to the output directory, relative the workspace root
+    default: 'build'
+    required: true
+  organization:
+    description: |
+      A RemotiveCloud organization.
+      See https://docs.remotivelabs.com/docs/remotive-topology/install#using-remotivetopology-in-a-ci-environment
+    required: true
+  auth_token:
+    description: |
+      A RemotiveCloud token.
+      See https://docs.remotivelabs.com/docs/remotive-topology/install#using-remotivetopology-in-a-ci-environment
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - run: docker pull remotivelabs/remotive-topology:${{ inputs.version }}
+      shell: bash
+
+    - id: prepare
+      shell: bash
+      run: |
+        # Convert input paths to file arguments
+        file_args=""
+        # Replace newlines with spaces and split on spaces
+        for path in $(echo "${{ inputs.path }}" | tr '\n' ' '); do
+          if [ -n "$path" ]; then
+            file_args+="--file ${{ github.workspace }}/$path "
+          fi
+        done
+        echo "files=${file_args}" >> $GITHUB_OUTPUT
+
+    - name: Generate Topology
+      shell: bash
+      run: |
+        docker run \
+          -v ${{ github.workspace }}:${{ github.workspace }} \
+          -w ${{ github.workspace }} \
+          -e REMOTIVE_CLOUD_AUTH_TOKEN=${REMOTIVE_CLOUD_AUTH_TOKEN} \
+          -e REMOTIVE_CLOUD_ORGANIZATION=${REMOTIVE_CLOUD_ORGANIZATION} \
+          remotivelabs/remotive-topology:${{ inputs.version }} \
+          generate \
+          ${{ steps.prepare.outputs.files }} \
+          ${{ inputs.name && format('--name {0}', inputs.name) || '' }} \
+          ${{ github.workspace }}/${{ inputs.output }}
+      env:
+        REMOTIVE_CLOUD_AUTH_TOKEN: ${{ inputs.auth_token }}
+        REMOTIVE_CLOUD_ORGANIZATION: ${{ inputs.organization }}
+
+branding:
+  icon: 'share-2'
+  color: 'blue'

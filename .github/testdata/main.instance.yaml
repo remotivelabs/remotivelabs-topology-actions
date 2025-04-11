@@ -1,0 +1,10 @@
+schema: remotive-topology-instance:0.8
+
+name: test-generate
+
+platform:
+  includes:
+    - ./topology.platform.yaml
+
+ecus:
+  BCM:

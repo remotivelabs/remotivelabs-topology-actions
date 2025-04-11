@@ -1,0 +1,10 @@
+schema: remotive-topology-platform:0.8
+
+channels:
+  DriverCan0:
+    type: can
+    database: ./databases/driver_can.dbc
+
+  BodyCan0:
+    type: can
+    database: ./databases/body_can.dbc
