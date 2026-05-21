@@ -1,0 +1,69 @@
+name: Sync docs to remotiveplatform-docs
+description: |
+  Publish a versioned API-docs tarball from a source repo into a central docs
+  repo (remotivelabs/remotiveplatform-docs). Resets a long-lived docs-sync
+  branch from main, lays out the new version dir, regenerates versions.json
+  + a redirect index, opens a PR, waits for its checks to pass, then merges.
+
+inputs:
+  app-id:
+    description: GitHub App ID for the docs-sync App
+    required: true
+  private-key:
+    description: GitHub App private key (pem contents)
+    required: true
+  target-repo:
+    description: 'Name of the central docs repo (e.g. remotiveplatform-docs). Assumed to be in the same org as the calling repo.'
+    required: true
+  version:
+    description: Semver version being published (e.g. 0.17.0)
+    required: true
+  package-name:
+    description: Python package being published (used in PR title and commit message, e.g. remotivelabs-topology)
+    required: true
+  tarball-path:
+    description: Local path to the docs tarball (.tar.gz) produced by the source workflow
+    required: true
+  target-subpath:
+    description: |
+      Directory under the target repo where the versioned tree lands.
+      The <version>/ subdir is created here; versions.json and index.html
+      are regenerated alongside it. E.g. apis-static/python/remotivelabs/topology
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Mint GitHub App installation token
+      id: app-token
+      uses: actions/create-github-app-token@v2
+      with:
+        app-id: ${{ inputs.app-id }}
+        private-key: ${{ inputs.private-key }}
+        owner: ${{ github.repository_owner }}
+        repositories: ${{ inputs.target-repo }}
+
+    - name: Checkout target repo
+      uses: actions/checkout@v4
+      with:
+        repository: ${{ github.repository_owner }}/${{ inputs.target-repo }}
+        token: ${{ steps.app-token.outputs.token }}
+        path: _docs_target
+        fetch-depth: 0
+
+    - name: Sync, push, PR, watch, merge
+      shell: bash
+      working-directory: _docs_target
+      env:
+        GH_TOKEN: ${{ steps.app-token.outputs.token }}
+        SOURCE_REPO: ${{ github.event.repository.name }}
+        SOURCE_SHA: ${{ github.sha }}
+        VERSION: ${{ inputs.version }}
+        PACKAGE_NAME: ${{ inputs.package-name }}
+        TARBALL_PATH: ${{ inputs.tarball-path }}
+        TARGET_SUBPATH: ${{ inputs.target-subpath }}
+      run: bash $GITHUB_ACTION_PATH/sync.sh
+
+branding:
+  icon: 'upload-cloud'
+  color: 'blue'
