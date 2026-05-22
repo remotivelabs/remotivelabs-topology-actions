@@ -33,6 +33,23 @@ git checkout -B "${BRANCH}" origin/main
 mkdir -p "${TARGET_SUBPATH}/${VERSION}"
 tar xzf "${TARBALL_PATH}" -C "${TARGET_SUBPATH}/${VERSION}"
 
+# URL prefix derived from where the tree is served (Firebase mirrors
+# apis-static/* into /apis/* at deploy time).
+url_prefix="/apis/${TARGET_SUBPATH#apis-static/}"
+
+# Overwrite pdoc's auto-generated version-dir entry index.html with an
+# absolute-URL redirect. pdoc's default points at `./remotivelabs/<module>.html`
+# which is RELATIVE — Firebase Hosting (trailingSlash=false) strips the
+# trailing slash on the served page, so the browser resolves the relative
+# URL from the parent directory and 404s. Absolute URLs sidestep this.
+module="${PACKAGE_NAME#remotivelabs-}"
+cat > "${TARGET_SUBPATH}/${VERSION}/index.html" <<EOF
+<!doctype html>
+<meta http-equiv="refresh" content="0; url=${url_prefix}/${VERSION}/remotivelabs/${module}.html">
+<link rel="canonical" href="${url_prefix}/${VERSION}/remotivelabs/${module}.html">
+<title>${PACKAGE_NAME} ${VERSION} API docs</title>
+EOF
+
 # Recompute the version list (semver-desc) from all version dirs present
 # after staging — picks the new release as latest if applicable.
 versions=$(find "${TARGET_SUBPATH}" -maxdepth 1 -mindepth 1 -type d -printf '%f\n' \
@@ -50,10 +67,11 @@ target.write_text(json.dumps({"latest": latest, "versions": versions}, indent=2)
 PY
 
 # Unversioned redirect — visiting the bare URL bounces to latest.
+# Absolute URL for the same reason as above.
 cat > "${TARGET_SUBPATH}/index.html" <<EOF
 <!doctype html>
-<meta http-equiv="refresh" content="0; url=./${latest}/">
-<link rel="canonical" href="./${latest}/">
+<meta http-equiv="refresh" content="0; url=${url_prefix}/${latest}/">
+<link rel="canonical" href="${url_prefix}/${latest}/">
 <title>${PACKAGE_NAME} API docs</title>
 EOF
 
