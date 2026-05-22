@@ -79,6 +79,21 @@ if ! gh pr view "${BRANCH}" --json number >/dev/null 2>&1; then
     --label "source:${SOURCE_REPO}"
 fi
 
+# After force-pushing the branch, GitHub takes a few seconds to enqueue the
+# workflow run and register check runs against the new commit. `gh pr checks
+# --watch` treats "no checks reported" as an error and exits non-zero — so
+# poll until at least one check is visible before watching.
+echo "Waiting for PR checks to be registered..."
+attempts=0
+until [ "$(gh pr checks "${BRANCH}" --json state --jq 'length' 2>/dev/null || echo 0)" -gt 0 ]; do
+  attempts=$((attempts + 1))
+  if [ "${attempts}" -gt 30 ]; then
+    echo "No checks registered after 5 minutes; proceeding to merge anyway." >&2
+    break
+  fi
+  sleep 10
+done
+
 # Wait for target's PR checks (build-on-pull-request.yaml) to finish.
 # Non-zero exit if any check fails — that aborts the merge.
 gh pr checks "${BRANCH}" --watch
