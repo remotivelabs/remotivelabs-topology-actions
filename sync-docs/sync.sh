@@ -85,25 +85,30 @@ fi
 git commit -m "docs(${SOURCE_REPO}): publish ${PACKAGE_NAME} ${VERSION}"
 git push --force-with-lease origin "${BRANCH}"
 
-# Idempotent PR open — if a PR already exists for the branch (e.g. from a
-# previous failed run), reuse it instead of erroring.
-if ! gh pr view "${BRANCH}" --json number >/dev/null 2>&1; then
-  gh pr create \
+# Idempotent PR open — only consider OPEN PRs as "already exists". The branch
+# is long-lived (no --delete-branch on merge), so prior releases leave merged
+# PRs attached to it; `gh pr view BRANCH` returns those by default and would
+# falsely report the PR as existing, skipping creation for the new commit.
+pr_number=$(gh pr list --head "${BRANCH}" --state open --json number --jq '.[0].number')
+if [ -z "${pr_number}" ]; then
+  pr_url=$(gh pr create \
     --base main \
     --head "${BRANCH}" \
     --title "docs(${SOURCE_REPO}): publish ${PACKAGE_NAME} ${VERSION} (${SHORT_SHA})" \
     --body "Automated docs sync from ${SOURCE_REPO}@${SOURCE_SHA}. PR build is the merge gate." \
     --label "docs-sync" \
-    --label "source:${SOURCE_REPO}"
+    --label "source:${SOURCE_REPO}")
+  pr_number="${pr_url##*/}"
 fi
 
 # After force-pushing the branch, GitHub takes a few seconds to enqueue the
 # workflow run and register check runs against the new commit. `gh pr checks
 # --watch` treats "no checks reported" as an error and exits non-zero — so
-# poll until at least one check is visible before watching.
+# poll until at least one check is visible before watching. Target by PR
+# number to avoid any chance of resolving to a stale merged PR.
 echo "Waiting for PR checks to be registered..."
 attempts=0
-until [ "$(gh pr checks "${BRANCH}" --json state --jq 'length' 2>/dev/null || echo 0)" -gt 0 ]; do
+until [ "$(gh pr checks "${pr_number}" --json state --jq 'length' 2>/dev/null || echo 0)" -gt 0 ]; do
   attempts=$((attempts + 1))
   if [ "${attempts}" -gt 30 ]; then
     echo "No checks registered after 5 minutes; proceeding to merge anyway." >&2
@@ -114,8 +119,8 @@ done
 
 # Wait for target's PR checks (build-on-pull-request.yaml) to finish.
 # Non-zero exit if any check fails — that aborts the merge.
-gh pr checks "${BRANCH}" --watch
+gh pr checks "${pr_number}" --watch
 
 # Rebase merge (target repo's policy). No --delete-branch:
 # docs-sync/<source> is a persistent sync channel, force-pushed each release.
-gh pr merge "${BRANCH}" --rebase
+gh pr merge "${pr_number}" --rebase
