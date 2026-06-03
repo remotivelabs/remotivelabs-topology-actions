@@ -1,9 +1,15 @@
-name: Sync docs to remotiveplatform-docs
+name: Sync docs to a central docs repo
 description: |
-  Publish a versioned API-docs tarball from a source repo into a central docs
-  repo (remotivelabs/remotiveplatform-docs). Resets a long-lived docs-sync
-  branch from main, lays out the new version dir, regenerates versions.json
-  + a redirect index, opens a PR, waits for its checks to pass, then merges.
+  Publish a pre-packaged docs tarball from a source repo into a central docs
+  repo (e.g. remotivelabs/remotiveplatform-docs). Resets a long-lived docs-sync
+  branch from main, untars the tarball under the configured subpath, opens a
+  PR, waits for its checks to pass, then merges.
+
+  The action is pure transport: the tarball is the final on-disk layout the
+  source workflow wants under <target-subpath>. Anything format-specific
+  (version dirs, redirect index.html, versions.json regen, pdoc/json-schema
+  entry URLs, version switchers) belongs in the source workflow's packaging
+  step, not here.
 
 inputs:
   app-id:
@@ -15,21 +21,31 @@ inputs:
   target-repo:
     description: 'Name of the central docs repo (e.g. remotiveplatform-docs). Assumed to be in the same org as the calling repo.'
     required: true
-  version:
-    description: Semver version being published (e.g. 0.17.0)
-    required: true
-  package-name:
-    description: Python package being published (used in PR title and commit message, e.g. remotivelabs-topology)
+  source-component:
+    description: |
+      Slug identifying the source component owning these docs (e.g. topology, broker, broker-schemas).
+      Used in the sync branch name (docs-sync/<source-repo>-<component>) so concurrent component
+      releases stay isolated, and in the PR title/commit message.
     required: true
   tarball-path:
-    description: Local path to the docs tarball (.tar.gz) produced by the source workflow
+    description: |
+      Local path to the docs tarball (.tar.gz) produced by the source workflow.
+      Contents land verbatim under <target-subpath> in the target repo.
     required: true
   target-subpath:
     description: |
-      Directory under the target repo where the versioned tree lands.
-      The <version>/ subdir is created here; versions.json and index.html
-      are regenerated alongside it. E.g. apis-static/python/remotivelabs/topology
+      Directory under the target repo where the tarball contents land
+      (e.g. apis-static/python/remotivelabs/topology, apis-static/json).
     required: true
+  labels:
+    description: |
+      Newline-separated list of labels to attach to the PR (in addition to
+      the automatically-added `source:<source-repo>` label). The default
+      `docs-sync` matches the convention in remotiveplatform-docs; override
+      with a different label (e.g. `schemas-sync`) when pushing to a target
+      that uses a different convention.
+    required: false
+    default: docs-sync
 
 runs:
   using: composite
@@ -48,20 +64,23 @@ runs:
       with:
         repository: ${{ github.repository_owner }}/${{ inputs.target-repo }}
         token: ${{ steps.app-token.outputs.token }}
-        path: _docs_target
+        # Per-invocation path so calling jobs can invoke sync-docs multiple
+        # times (different target-repo / source-component pairs) in the same
+        # job without the second checkout clobbering the first.
+        path: _sync_target_${{ inputs.target-repo }}_${{ inputs.source-component }}
         fetch-depth: 0
 
     - name: Sync, push, PR, watch, merge
       shell: bash
-      working-directory: _docs_target
+      working-directory: _sync_target_${{ inputs.target-repo }}_${{ inputs.source-component }}
       env:
         GH_TOKEN: ${{ steps.app-token.outputs.token }}
         SOURCE_REPO: ${{ github.event.repository.name }}
         SOURCE_SHA: ${{ github.sha }}
-        VERSION: ${{ inputs.version }}
-        PACKAGE_NAME: ${{ inputs.package-name }}
+        SOURCE_COMPONENT: ${{ inputs.source-component }}
         TARBALL_PATH: ${{ inputs.tarball-path }}
         TARGET_SUBPATH: ${{ inputs.target-subpath }}
+        LABELS: ${{ inputs.labels }}
       run: bash $GITHUB_ACTION_PATH/sync.sh
 
 branding:
