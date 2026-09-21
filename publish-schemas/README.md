@@ -40,7 +40,8 @@ is the check that it happened.
 ```yaml
 - uses: remotivelabs/remotivelabs-topology-actions/publish-schemas@v1
   with:
-    # Newline or space separated schema files, relative to the workspace root.
+    # Newline or space separated schema files, relative to the workspace root
+    # (whatever the job's run defaults say).
     # Required
     schemas: |
       schemas/my-format.schema.json

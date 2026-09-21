@@ -32,6 +32,15 @@ runs:
       shell: bash
       env:
         ID_PREFIX: ${{ inputs.id-prefix }}
+        SCHEMAS: ${{ inputs.schemas }}
       run: |
-        # Newline or space separated paths to arguments
-        bash "${{ github.action_path }}/publish.sh" "${{ inputs.bucket }}" "${{ inputs.tarball-path }}" $(echo "${{ inputs.schemas }}" | tr '\n' ' ')
+        # Paths are relative to the workspace root whatever the calling workflow's
+        # run defaults say, so the same path works from a job with a working-directory.
+        files=()
+        for path in $SCHEMAS; do
+          case "$path" in
+            /*) files+=("$path") ;;
+            *)  files+=("${{ github.workspace }}/$path") ;;
+          esac
+        done
+        bash "${{ github.action_path }}/publish.sh" "${{ inputs.bucket }}" "${{ inputs.tarball-path }}" "${files[@]}"
