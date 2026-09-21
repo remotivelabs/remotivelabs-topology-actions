@@ -1,0 +1,37 @@
+name: Publish JSON schemas by their $id
+description: |
+  Publish JSON schemas to a bucket at the path their `$id` names, and stage the same layout in a
+  tarball for sync-docs. A schema version is immutable: a published object with the same content
+  is left alone, one with different content fails the run.
+inputs:
+  schemas:
+    description: |
+      Newline or space separated paths to schema files, relative to the workspace root. Each
+      declares its canonical URL in `$id`, as <id-prefix>schemas/<name>/<name>-<major>.<minor>.schema.json,
+      and is kept as <name>.schema.json.
+    required: true
+  bucket:
+    description: |
+      Where the schemas are published, as gs://<bucket>. The caller has authenticated to Google
+      Cloud before this step (for example with google-github-actions/auth and setup-gcloud).
+    required: true
+  tarball-path:
+    description: Where to write the .tar.gz holding the published layout, to hand to sync-docs.
+    required: true
+  id-prefix:
+    description: What every `$id` starts with. What follows it is the path in the bucket and in the tarball.
+    default: 'https://releases.remotivelabs.com/'
+outputs:
+  urls:
+    description: The `$id` of every schema published or found unchanged, one per line.
+    value: ${{ steps.publish.outputs.urls }}
+runs:
+  using: composite
+  steps:
+    - id: publish
+      shell: bash
+      env:
+        ID_PREFIX: ${{ inputs.id-prefix }}
+      run: |
+        # Newline or space separated paths to arguments
+        bash "${{ github.action_path }}/publish.sh" "${{ inputs.bucket }}" "${{ inputs.tarball-path }}" $(echo "${{ inputs.schemas }}" | tr '\n' ' ')

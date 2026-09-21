@@ -1,0 +1,16 @@
+name: publish-schemas CI
+
+on:
+  push:
+    branches:
+      - '**'
+
+jobs:
+  test_publish_schemas:
+    runs-on: ubuntu-latest
+    name: Test publish-schemas action
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run the script against a stubbed gsutil
+        run: bash publish-schemas/test.sh
+        shell: bash
