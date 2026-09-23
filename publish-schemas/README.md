@@ -52,7 +52,7 @@ is the check that it happened.
     # Required
     tarball-path: /tmp/schemas.tar.gz
     # What every $id starts with. What follows it is the path in the bucket and the tarball.
-    # Default: https://releases.remotivelabs.com/
+    # Default: https://files.remotivelabs.com/
     id-prefix: ''
 ```
 
