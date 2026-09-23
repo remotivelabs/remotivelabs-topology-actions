@@ -20,7 +20,7 @@ inputs:
     required: true
   id-prefix:
     description: What every `$id` starts with. What follows it is the path in the bucket and in the tarball.
-    default: 'https://releases.remotivelabs.com/'
+    default: 'https://files.remotivelabs.com/'
 outputs:
   urls:
     description: The `$id` of every schema published or found unchanged, one per line.
