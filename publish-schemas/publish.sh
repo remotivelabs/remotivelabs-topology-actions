@@ -13,7 +13,7 @@
 #   ID_PREFIX      - what every `$id` starts with, e.g. https://schemas.example.com/
 #   GITHUB_OUTPUT  - when set, `urls` (the `$id`s, one per line) is written to it
 #
-# A schema's `$id` is <ID_PREFIX>schemas/<name>/<name>-<major>.<minor>.schema.json and its file
+# A schema's `$id` is <ID_PREFIX>schemas/<name>-<major>.<minor>.schema.json and its file
 # is <name>.schema.json. What follows the prefix is the object's path in the bucket and its path
 # in the tarball, so the URL, the bucket and the tarball agree by construction. A version is
 # immutable: an object that already exists with the same content is left alone, one with
@@ -49,15 +49,11 @@ for path in "$@"; do
     echo "${path}: \$id '${id}' does not start with '${ID_PREFIX}'" >&2
     exit 1
   fi
-  if [[ ! "${relative}" =~ ^schemas/([A-Za-z0-9._-]+)/([A-Za-z0-9._-]+)-([0-9]+\.[0-9]+)\.schema\.json$ ]]; then
-    echo "${path}: \$id '${id}' is not <prefix>schemas/<name>/<name>-<major>.<minor>.schema.json" >&2
+  if [[ ! "${relative}" =~ ^schemas/([A-Za-z0-9._-]+)-([0-9]+\.[0-9]+)\.schema\.json$ ]]; then
+    echo "${path}: \$id '${id}' is not <prefix>schemas/<name>-<major>.<minor>.schema.json" >&2
     exit 1
   fi
   name="${BASH_REMATCH[1]}"
-  if [ "${BASH_REMATCH[2]}" != "${name}" ]; then
-    echo "${path}: \$id '${id}' names the directory '${name}' but the file '${BASH_REMATCH[2]}'" >&2
-    exit 1
-  fi
   if [ "$(basename "${path}")" != "${name}.schema.json" ]; then
     echo "${path}: a schema whose \$id names '${name}' is kept as ${name}.schema.json" >&2
     exit 1
