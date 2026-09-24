@@ -7,7 +7,7 @@ inputs:
   schemas:
     description: |
       Newline or space separated paths to schema files, relative to the workspace root. Each
-      declares its canonical URL in `$id`, as <id-prefix>schemas/<name>/<name>-<major>.<minor>.schema.json,
+      declares its canonical URL in `$id`, as <id-prefix>schemas/<name>-<major>.<minor>.schema.json,
       and is kept as <name>.schema.json.
     required: true
   bucket:

@@ -32,8 +32,8 @@ chmod +x "${work}/bin/gsutil"
 export PATH="${work}/bin:${PATH}" FAKE_BUCKET_DIR="${work}/bucket" ID_PREFIX="https://schemas.example.com/"
 
 schema() { # schema <name> <version> <marker>  -> writes <work>/<name>.schema.json
-  printf '{"$schema":"http://json-schema.org/draft-07/schema#","$id":"https://schemas.example.com/schemas/%s/%s-%s.schema.json","title":"%s","type":"object"}\n' \
-    "$1" "$1" "$2" "$3" > "${work}/$1.schema.json"
+  printf '{"$schema":"http://json-schema.org/draft-07/schema#","$id":"https://schemas.example.com/schemas/%s-%s.schema.json","title":"%s","type":"object"}\n' \
+    "$1" "$2" "$3" > "${work}/$1.schema.json"
 }
 publish() { GITHUB_OUTPUT="${work}/output" bash "${here}/publish.sh" gs://example-bucket "${work}/out.tar.gz" "$@" > "${work}/stdout"; }
 assert_stdout() { grep -q -- "$1" "${work}/stdout" || { echo "FAIL: stdout lacks '$1':"; cat "${work}/stdout"; exit 1; }; }
@@ -45,10 +45,10 @@ echo "== a new version is uploaded and staged"
 schema example-format 0.1 "first"
 : > "${work}/output"
 publish "${work}/example-format.schema.json"
-assert_stdout "^published https://schemas.example.com/schemas/example-format/example-format-0.1.schema.json$"
-test -f "${work}/bucket/schemas/example-format/example-format-0.1.schema.json"
-tarball_lists "^./schemas/example-format/example-format-0.1.schema.json$"
-grep -q "^https://schemas.example.com/schemas/example-format/example-format-0.1.schema.json$" "${work}/output"
+assert_stdout "^published https://schemas.example.com/schemas/example-format-0.1.schema.json$"
+test -f "${work}/bucket/schemas/example-format-0.1.schema.json"
+tarball_lists "^./schemas/example-format-0.1.schema.json$"
+grep -q "^https://schemas.example.com/schemas/example-format-0.1.schema.json$" "${work}/output"
 
 echo "== the same version again is left alone"
 publish "${work}/example-format.schema.json"
@@ -58,14 +58,14 @@ echo "== the same version with other content fails before anything is written"
 schema example-format 0.1 "second"
 expect_failure publish "${work}/example-format.schema.json"
 assert_stderr "exists with different content"
-[ "$(cat "${work}/bucket/schemas/example-format/example-format-0.1.schema.json" | jq -r .title)" = "first" ]
+[ "$(cat "${work}/bucket/schemas/example-format-0.1.schema.json" | jq -r .title)" = "first" ]
 
 echo "== a bumped version is uploaded beside the old one"
 schema example-format 0.2 "second"
 publish "${work}/example-format.schema.json"
 assert_stdout "^published .*example-format-0.2.schema.json$"
-test -f "${work}/bucket/schemas/example-format/example-format-0.1.schema.json"
-test -f "${work}/bucket/schemas/example-format/example-format-0.2.schema.json"
+test -f "${work}/bucket/schemas/example-format-0.1.schema.json"
+test -f "${work}/bucket/schemas/example-format-0.2.schema.json"
 
 echo "== several schemas in one run"
 schema other-format 1.0 "other"
@@ -87,7 +87,7 @@ assert_stderr "does not start with"
 echo "== an \$id off the convention is refused"
 printf '{"$id":"https://schemas.example.com/schemas/x/x-0.1.0.schema.json"}\n' > "${work}/x.schema.json"
 expect_failure publish "${work}/x.schema.json"
-assert_stderr "is not <prefix>schemas/<name>/<name>-<major>.<minor>.schema.json"
+assert_stderr "is not <prefix>schemas/<name>-<major>.<minor>.schema.json"
 
 echo "== a file not named after its \$id is refused"
 schema example-format 0.3 "third"

@@ -8,7 +8,7 @@ tarball for [`sync-docs`](../sync-docs/README.md) to carry into an aggregator re
 A schema declares its canonical URL in `$id`:
 
 ```
-<id-prefix>schemas/<name>/<name>-<major>.<minor>.schema.json
+<id-prefix>schemas/<name>-<major>.<minor>.schema.json
 ```
 
 and its file is `<name>.schema.json` — unversioned, so diffs and history read cleanly. What
