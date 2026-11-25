@@ -1,6 +1,8 @@
 # sync-docs
 
-Publish a pre-packaged content tarball from a source repo into a central target repo (e.g. `remotivelabs/remotiveplatform-docs`, `remotivelabs/remotivelabs-apis`).
+> **Internal.** Used by RemotiveLabs' own release workflows, and changed to suit them.
+
+Publish a pre-packaged content tarball from a source repo into a central target repo (e.g. `remotivelabs/remotivelabs-apis`).
 
 The action:
 
@@ -17,7 +19,7 @@ If any of the PR's checks fail, the action fails before merging.
 
 The tarball is the final on-disk layout the source workflow wants under `<target-subpath>`. The action is pure transport — it does not write any version dirs, redirect `index.html`, `versions.json`, or any other format-specific content. Anything like that lives in the source workflow's packaging step before invoking the action.
 
-This keeps the action format-agnostic and lets each source repo own its own URL structure, version layout, and redirect strategy (pdoc, json-schema-for-humans, raw JSON, plain HTML, etc.). The same action serves docs-style targets (`remotiveplatform-docs`) and api-aggregator targets (`remotivelabs-apis`); the difference is the tarball shape and the labels.
+This keeps the action format-agnostic and lets each source repo own its own URL structure, version layout, and redirect strategy (pdoc, json-schema-for-humans, raw JSON, plain HTML, etc.). The same action serves docs-style targets (a docs site) and api-aggregator targets (`remotivelabs-apis`); the difference is the tarball shape and the labels.
 
 ## Prerequisites
 
@@ -30,7 +32,7 @@ This keeps the action format-agnostic and lets each source repo own its own URL 
 ## Usage
 
 ```yaml
-- uses: remotivelabs/remotivelabs-topology-actions/sync-docs@v1
+- uses: remotivelabs/remotivelabs-topology-actions/sync-docs@<commit-sha>
   with:
     # GitHub App ID for the docs-sync App.
     # Required
@@ -55,10 +57,9 @@ This keeps the action format-agnostic and lets each source repo own its own URL 
     # Required
     target-subpath: ""
     # Newline-separated list of labels to attach to the PR (in addition to
-    # the automatically-added `source:<source-repo>` label). Default
-    # `docs-sync` matches the convention in remotiveplatform-docs; override
-    # with a different label (e.g. `schemas-sync`) when pushing to a target
-    # that uses a different convention.
+    # the automatically-added `source:<source-repo>` label). Override the
+    # default `docs-sync` (e.g. with `schemas-sync`) when pushing to a target
+    # that uses another convention.
     # Optional, default: docs-sync
     labels: ""
 ```
@@ -87,11 +88,11 @@ publish-docs:
         TARGET_SUBPATH: apis-static/python/remotivelabs/topology
       run: bash scripts/package-versioned-docs.sh /tmp/pdoc /tmp/docs-bundle.tar.gz
 
-    - uses: remotivelabs/remotivelabs-topology-actions/sync-docs@v1
+    - uses: remotivelabs/remotivelabs-topology-actions/sync-docs@<commit-sha>
       with:
         app-id: ${{ secrets.DOCS_PUSH_APP_ID }}
         private-key: ${{ secrets.DOCS_PUSH_PRIVATE_KEY }}
-        target-repo: remotiveplatform-docs
+        target-repo: docs-site
         source-component: topology
         tarball-path: /tmp/docs-bundle.tar.gz
         target-subpath: apis-static/python/remotivelabs/topology
@@ -109,11 +110,11 @@ For non-versioned content (e.g. schema docs in Phase 1), the packaging step just
     generate-schema-doc apps/topology/schemas/topology.schema.json rendered/topology.html
     tar czf /tmp/schema-docs.tar.gz -C rendered .
 
-- uses: remotivelabs/remotivelabs-topology-actions/sync-docs@v1
+- uses: remotivelabs/remotivelabs-topology-actions/sync-docs@<commit-sha>
   with:
     app-id: ${{ secrets.DOCS_PUSH_APP_ID }}
     private-key: ${{ secrets.DOCS_PUSH_PRIVATE_KEY }}
-    target-repo: remotiveplatform-docs
+    target-repo: docs-site
     source-component: topology-schemas
     tarball-path: /tmp/schema-docs.tar.gz
     target-subpath: apis-static/json
@@ -130,7 +131,7 @@ Same action, different target. Stage the schemas under their published filenames
     cp apps/topology/schemas/topology.schema.json /tmp/apis-stage/schemas/topology.json
     tar czf /tmp/schemas-to-apis.tar.gz -C /tmp/apis-stage .
 
-- uses: remotivelabs/remotivelabs-topology-actions/sync-docs@v1
+- uses: remotivelabs/remotivelabs-topology-actions/sync-docs@<commit-sha>
   with:
     app-id: ${{ secrets.DOCS_PUSH_APP_ID }}
     private-key: ${{ secrets.DOCS_PUSH_PRIVATE_KEY }}

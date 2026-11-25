@@ -1,5 +1,7 @@
 # publish-schemas
 
+> **Internal.** Used by RemotiveLabs' own release workflows, and changed to suit them.
+
 Publish JSON schemas to a bucket at the path their `$id` names, and stage the same layout in a
 tarball for [`sync-docs`](../sync-docs/README.md) to carry into an aggregator repo.
 
@@ -38,7 +40,7 @@ is the check that it happened.
 ## Usage
 
 ```yaml
-- uses: remotivelabs/remotivelabs-topology-actions/publish-schemas@v1
+- uses: remotivelabs/remotivelabs-topology-actions/publish-schemas@<commit-sha>
   with:
     # Newline or space separated schema files, relative to the workspace root
     # (whatever the job's run defaults say).
@@ -72,13 +74,13 @@ Outputs:
     service_account: ${{ vars.SERVICE_ACCOUNT_EMAIL }}
 - uses: google-github-actions/setup-gcloud@v2
 
-- uses: remotivelabs/remotivelabs-topology-actions/publish-schemas@v1
+- uses: remotivelabs/remotivelabs-topology-actions/publish-schemas@<commit-sha>
   with:
     schemas: schemas/my-format.schema.json
     bucket: ${{ vars.SCHEMAS_BUCKET }}
     tarball-path: /tmp/schemas.tar.gz
 
-- uses: remotivelabs/remotivelabs-topology-actions/sync-docs@v1
+- uses: remotivelabs/remotivelabs-topology-actions/sync-docs@<commit-sha>
   with:
     app-id: ${{ secrets.DOCS_PUSH_APP_ID }}
     private-key: ${{ secrets.DOCS_PUSH_PRIVATE_KEY }}

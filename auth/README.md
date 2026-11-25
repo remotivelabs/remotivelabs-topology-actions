@@ -17,7 +17,7 @@ To build and run a topology, the account needs the RemotiveTopology Executor rol
 ## Usage
 
 ```yaml
-- uses: remotivelabs/remotivelabs-topology-actions/auth@v1
+- uses: remotivelabs/remotivelabs-topology-actions/auth@<commit-sha>
   with:
     # A RemotiveCloud service-account access token.
     # Required

@@ -35,7 +35,7 @@ truncated download never runs. The RemotiveCLI it installs is checked against si
 ## Usage
 
 ```yaml
-- uses: remotivelabs/remotivelabs-topology-actions/setup@v1
+- uses: remotivelabs/remotivelabs-topology-actions/setup@<commit-sha>
   with:
     # Exact RemotiveCLI version. Empty: the workspace's pin, else the newest release its
     # requires-version allows, else the latest release.
@@ -53,8 +53,8 @@ The version that runs is the output `cli-version`.
 With [`auth`](../auth/README.md) and [`build`](../build/README.md):
 
 ```yaml
-- uses: remotivelabs/remotivelabs-topology-actions/setup@v1
-- uses: remotivelabs/remotivelabs-topology-actions/auth@v1
+- uses: remotivelabs/remotivelabs-topology-actions/setup@<commit-sha>
+- uses: remotivelabs/remotivelabs-topology-actions/auth@<commit-sha>
   with:
     auth_token: ${{ secrets.MY_RL_TOKEN }}
     organization: ${{ secrets.MY_RL_ORG }}
