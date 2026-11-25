@@ -1,0 +1,67 @@
+name: setup CI
+
+on:
+  push:
+    branches: ['**']
+
+jobs:
+  test_setup:
+    runs-on: ${{ matrix.os }}
+    name: Test setup action (${{ matrix.os }})
+
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, ubuntu-24.04-arm, macos-latest]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: A version given
+        id: given
+        uses: ./setup
+        with:
+          cli-version: "0.48.0"
+      - name: Verify it runs
+        shell: bash
+        env:
+          RAN: ${{ steps.given.outputs.cli-version }}
+        run: |
+          remotive --version
+          test "$RAN" = "0.48.0"
+
+      - name: Pin a version in a workspace
+        shell: bash
+        run: |
+          mkdir -p "$RUNNER_TEMP/workspace/sub"
+          printf 'tools:\n  cli:\n    version: "0.47.0"\n' > "$RUNNER_TEMP/workspace/remotive.yaml"
+      - name: The workspace's version
+        id: pinned
+        uses: ./setup
+        with:
+          working-directory: ${{ runner.temp }}/workspace/sub
+      - name: Verify the workspace's version runs there
+        shell: bash
+        working-directory: ${{ runner.temp }}/workspace/sub
+        env:
+          RAN: ${{ steps.pinned.outputs.cli-version }}
+        run: |
+          remotive --version
+          test "$RAN" = "0.47.0"
+
+      - name: Allow a range in a workspace
+        shell: bash
+        run: |
+          mkdir -p "$RUNNER_TEMP/ranged"
+          printf 'requires-version: ">=0.45,<0.47"\n' > "$RUNNER_TEMP/ranged/remotive.yaml"
+      - name: The newest release in the workspace's range
+        id: ranged
+        uses: ./setup
+        with:
+          working-directory: ${{ runner.temp }}/ranged
+      - name: Verify the newest release in the range runs
+        shell: bash
+        env:
+          RAN: ${{ steps.ranged.outputs.cli-version }}
+        run: |
+          case "$RAN" in 0.46.*) ;; *) echo "ran $RAN"; exit 1 ;; esac

@@ -20,12 +20,12 @@ inputs:
   organization:
     description: |
       A RemotiveCloud organization.
-      See https://docs.remotivelabs.com/docs/remotive-topology/install#using-remotivetopology-in-a-ci-environment
+      See https://developer.remotivelabs.com/docs/remotive-topology/usage
     required: true
   auth_token:
     description: |
       A RemotiveCloud token.
-      See https://docs.remotivelabs.com/docs/remotive-topology/install#using-remotivetopology-in-a-ci-environment
+      See https://developer.remotivelabs.com/docs/remotive-topology/usage
     required: true
 
 runs:
