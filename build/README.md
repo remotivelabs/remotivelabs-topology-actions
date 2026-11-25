@@ -13,7 +13,7 @@ change or remove what is built.
 ## Usage
 
 ```yaml
-- uses: remotivelabs/remotivelabs-topology-actions/build@v1
+- uses: remotivelabs/remotivelabs-topology-actions/build@<commit-sha>
   with:
     # Newline or space separated instance files, applied in order, relative to working-directory.
     # Required
@@ -37,12 +37,12 @@ The directory the topology was built in is the output `path`.
 ## Example
 
 ```yaml
-- uses: remotivelabs/remotivelabs-topology-actions/setup@v1
-- uses: remotivelabs/remotivelabs-topology-actions/auth@v1
+- uses: remotivelabs/remotivelabs-topology-actions/setup@<commit-sha>
+- uses: remotivelabs/remotivelabs-topology-actions/auth@<commit-sha>
   with:
     auth_token: ${{ secrets.MY_RL_TOKEN }}
     organization: ${{ secrets.MY_RL_ORG }}
-- uses: remotivelabs/remotivelabs-topology-actions/build@v1
+- uses: remotivelabs/remotivelabs-topology-actions/build@<commit-sha>
   id: topology
   with:
     files: |
