@@ -12,7 +12,8 @@ jobs:
 
     strategy:
       matrix:
-        version: [ 'latest', '0.11.1', '0.10.1', '0.9.1', '0.8.6']
+        # The latest, the newest pinned release and the oldest still tested
+        version: [ 'latest', '0.40.0', '0.8.6']
 
     steps:
       - uses: actions/checkout@v4

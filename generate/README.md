@@ -1,6 +1,6 @@
 # generate
 
-Generate a Docker Compose file from one or more [RemotiveTopology](https://docs.remotivelabs.com/docs/remotive-topology) description files, using the [RemotiveTopology CLI tool](https://docs.remotivelabs.com/docs/remotive-topology/usage).
+Generate a Docker Compose file from one or more [RemotiveTopology](https://developer.remotivelabs.com/docs/remotive-topology) description files, using the [RemotiveTopology CLI tool](https://developer.remotivelabs.com/docs/remotive-topology/usage).
 
 ## Usage
 
@@ -20,11 +20,11 @@ Generate a Docker Compose file from one or more [RemotiveTopology](https://docs.
     # Default: build
     output: ""
     # RemotiveCloud organization.
-    # See https://docs.remotivelabs.com/docs/remotive-topology/install#using-remotivetopology-in-a-ci-environment
+    # See https://developer.remotivelabs.com/docs/remotive-topology/usage
     # Required
     organization: ""
     # RemotiveCloud authentication token
-    # See https://docs.remotivelabs.com/docs/remotive-topology/install#using-remotivetopology-in-a-ci-environment
+    # See https://developer.remotivelabs.com/docs/remotive-topology/usage
     # Required
     auth_token: ""
 ```
