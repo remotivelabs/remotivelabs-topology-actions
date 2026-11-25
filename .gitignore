@@ -1,1 +1,4 @@
-build/
+# What the tests build; build/ is an action
+topology-out/
+.remotive/
+__pycache__/

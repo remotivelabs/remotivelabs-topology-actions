@@ -1,0 +1,106 @@
+name: auth and build CI
+
+on:
+  push:
+    branches: ['**']
+
+jobs:
+  test_auth:
+    runs-on: ubuntu-latest
+    name: Test auth action
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Without a token
+        id: empty
+        continue-on-error: true
+        uses: ./auth
+        with:
+          auth_token: ""
+          organization: some-organization
+      - name: Verify it fails
+        shell: bash
+        run: |
+          test "${{ steps.empty.outcome }}" = failure
+          test -z "${REMOTIVE_CLOUD_AUTH_TOKEN:-}${REMOTIVE_CLOUD_ORGANIZATION:-}"
+
+      - name: With a line break in a value
+        id: multiline
+        continue-on-error: true
+        uses: ./auth
+        with:
+          auth_token: some-token
+          organization: |
+            some-organization
+            BASH_ENV=/tmp/injected
+      - name: Verify it fails, writing nothing
+        shell: bash
+        run: |
+          test "${{ steps.multiline.outcome }}" = failure
+          test -z "${BASH_ENV:-}${REMOTIVE_CLOUD_AUTH_TOKEN:-}${REMOTIVE_CLOUD_ORGANIZATION:-}"
+
+      - uses: ./setup
+      - uses: ./auth
+        with:
+          auth_token: ${{ secrets.REMOTIVE_CLOUD_AUTH_TOKEN }}
+          organization: ${{ secrets.REMOTIVE_CLOUD_ORGANIZATION }}
+          project: some-project
+      - name: Verify the later steps have the account
+        shell: bash
+        run: |
+          test -n "$REMOTIVE_CLOUD_AUTH_TOKEN"
+          test "$REMOTIVE_CLOUD_ORGANIZATION" = "${{ secrets.REMOTIVE_CLOUD_ORGANIZATION }}"
+          test "$REMOTIVE_CLOUD_PROJECT" = some-project
+          test "$(remotive auth print-access-token)" = "$REMOTIVE_CLOUD_AUTH_TOKEN"
+
+  test_build:
+    runs-on: ubuntu-latest
+    name: Test build action
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Without the RemotiveCLI
+        id: no_cli
+        continue-on-error: true
+        uses: ./build
+        with:
+          files: .github/testdata/main.instance.yaml
+      - name: Verify it fails
+        shell: bash
+        run: test "${{ steps.no_cli.outcome }}" = failure
+
+      - uses: ./setup
+      - uses: ./auth
+        with:
+          auth_token: ${{ secrets.REMOTIVE_CLOUD_AUTH_TOKEN }}
+          organization: ${{ secrets.REMOTIVE_CLOUD_ORGANIZATION }}
+
+      - name: Build with newline separated files
+        id: newlines
+        uses: ./build
+        with:
+          name: test-build1
+          output: topology-out
+          working-directory: .github/testdata
+          files: |
+            main.instance.yaml
+            settings.instance.yaml
+      - name: Verify the compose file is built, owned by the runner's user
+        shell: bash
+        env:
+          BUILT: ${{ steps.newlines.outputs.path }}
+        run: |
+          test "$BUILT" = "$PWD/.github/testdata/topology-out/test-build1"
+          test -O .github/testdata/topology-out/test-build1/docker-compose.yml
+
+      - name: Build with space separated files, with metrics
+        uses: ./build
+        with:
+          name: test-build2
+          working-directory: .github/testdata
+          files: main.instance.yaml settings.instance.yaml
+          output: topology-out/metrics
+          with-metrics: "true"
+      - name: Verify the compose file is built
+        shell: bash
+        run: test -f .github/testdata/topology-out/metrics/test-build2/docker-compose.yml
