@@ -1,0 +1,16 @@
+name: sync-docs CI
+
+on:
+  push:
+    branches:
+      - '**'
+
+jobs:
+  test_sync_docs:
+    runs-on: ubuntu-latest
+    name: Test sync-docs action
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run the script against a local target repo and a stubbed gh
+        run: bash sync-docs/test.sh
+        shell: bash
