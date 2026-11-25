@@ -50,13 +50,13 @@ The version that runs is the output `cli-version`.
 
 ## Example
 
-Run commands that need RemotiveCloud as a service account:
+With [`auth`](../auth/README.md) and [`build`](../build/README.md):
 
 ```yaml
 - uses: remotivelabs/remotivelabs-topology-actions/setup@v1
-
-- run: remotive topology generate -f topology/main.instance.yaml build
-  env:
-    REMOTIVE_CLOUD_AUTH_TOKEN: ${{ secrets.MY_RL_TOKEN }}
-    REMOTIVE_CLOUD_ORGANIZATION: ${{ secrets.MY_RL_ORG }}
+- uses: remotivelabs/remotivelabs-topology-actions/auth@v1
+  with:
+    auth_token: ${{ secrets.MY_RL_TOKEN }}
+    organization: ${{ secrets.MY_RL_ORG }}
+- run: remotive topology version
 ```

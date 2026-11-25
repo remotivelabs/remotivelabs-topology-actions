@@ -1,0 +1,67 @@
+name: Authenticate to RemotiveCloud
+description: >
+  Make a RemotiveCloud service account the account of the job's later steps: the RemotiveCLI, and
+  RemotiveTopology and the brokers it starts, use it. Like the cloud providers' auth actions, it
+  takes the secrets as inputs, so a workflow names them in one place.
+
+inputs:
+  auth_token:
+    description: >
+      A RemotiveCloud service-account access token, from a secret, or from a step output that is already
+      masked: the step lists its inputs before it can mask the token.
+    required: true
+  organization:
+    description: The RemotiveCloud organization the account acts in.
+    required: true
+  project:
+    description: The RemotiveCloud project, for commands that act in one.
+    required: false
+    default: ""
+
+runs:
+  using: composite
+  steps:
+    # The environment of the later steps, as the CLI reads it in CI. The token is masked first, so
+    # it is never printed by a later step either.
+    - name: Make the account the job's
+      shell: bash
+      env:
+        AUTH_TOKEN: ${{ inputs.auth_token }}
+        ORGANIZATION: ${{ inputs.organization }}
+        PROJECT: ${{ inputs.project }}
+      run: |
+        if [ -z "$AUTH_TOKEN" ] || [ -z "$ORGANIZATION" ]; then
+          echo "::error::auth_token and organization are required; a secret that is not set, as in a pull request from a fork, is empty"
+          exit 1
+        fi
+        # A line break would start another variable in GITHUB_ENV, and the mask covers one line only
+        for value in "$AUTH_TOKEN" "$ORGANIZATION" "$PROJECT"; do
+          if [[ "$value" == *$'\n'* || "$value" == *$'\r'* ]]; then
+            echo "::error::auth_token, organization and project must be one line each"
+            exit 1
+          fi
+        done
+        echo "::add-mask::$AUTH_TOKEN"
+        {
+          echo "REMOTIVE_CLOUD_AUTH_TOKEN=$AUTH_TOKEN"
+          echo "REMOTIVE_CLOUD_ORGANIZATION=$ORGANIZATION"
+          # Also when empty, so a project from an earlier auth step does not stay
+          echo "REMOTIVE_CLOUD_PROJECT=$PROJECT"
+        } >> "$GITHUB_ENV"
+
+    # With the RemotiveCLI installed (the setup action), a token that RemotiveCloud refuses fails here
+    - name: Check the account
+      shell: bash
+      env:
+        REMOTIVE_CLOUD_AUTH_TOKEN: ${{ inputs.auth_token }}
+        REMOTIVE_CLOUD_ORGANIZATION: ${{ inputs.organization }}
+      run: |
+        if command -v remotive >/dev/null; then
+          remotive auth whoami
+        else
+          echo "The RemotiveCLI is not installed (the setup action): the account is not checked"
+        fi
+
+branding:
+  icon: 'lock'
+  color: 'blue'

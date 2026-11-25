@@ -26,11 +26,11 @@ jobs:
           path: |
             .github/testdata/main.instance.yaml
             .github/testdata/settings.instance.yaml
-          output: build/
+          output: topology-out/
           organization: ${{ secrets.REMOTIVE_CLOUD_ORGANIZATION }}
           auth_token: ${{ secrets.REMOTIVE_CLOUD_AUTH_TOKEN }}
       - name: Verify compose file is generated
-        run: test -f ./build/test-generate1/docker-compose.yml
+        run: test -f ./topology-out/test-generate1/docker-compose.yml
         shell: bash
 
       - name: Generate with space separated paths
@@ -39,9 +39,9 @@ jobs:
           version: ${{ matrix.version }}
           name: test-generate2
           path: .github/testdata/main.instance.yaml .github/testdata/settings.instance.yaml
-          output: build/
+          output: topology-out/
           organization: ${{ secrets.REMOTIVE_CLOUD_ORGANIZATION }}
           auth_token: ${{ secrets.REMOTIVE_CLOUD_AUTH_TOKEN }}
       - name: Verify compose file is generated
-        run: test -f ./build/test-generate2/docker-compose.yml
+        run: test -f ./topology-out/test-generate2/docker-compose.yml
         shell: bash

@@ -1,5 +1,7 @@
 # generate
 
+> **Deprecated.** Use [`setup`](../setup/README.md), [`auth`](../auth/README.md) and [`build`](../build/README.md) instead; [`build`](../build/README.md#from-generate) says how its inputs map. `generate` runs the RemotiveTopology container as root, so what it writes is owned by root.
+
 Generate a Docker Compose file from one or more [RemotiveTopology](https://developer.remotivelabs.com/docs/remotive-topology) description files, using the [RemotiveTopology CLI tool](https://developer.remotivelabs.com/docs/remotive-topology/usage).
 
 ## Usage

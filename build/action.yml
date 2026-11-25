@@ -1,0 +1,74 @@
+name: RemotiveTopology build
+description: >
+  Build a RemotiveTopology environment, a Docker Compose project, from one or more instance files, with
+  `remotive topology build`. Needs the RemotiveCLI (the setup action) and a RemotiveCloud account
+  (the auth action).
+
+inputs:
+  files:
+    description: Newline or space separated instance files, applied in order, relative to `working-directory`.
+    required: true
+  name:
+    description: Name of the topology, when the instance files do not name it.
+    required: false
+    default: ""
+  output:
+    description: Directory the topology is built in, as `<output>/<name>`, relative to `working-directory`.
+    required: false
+    default: build
+  with-metrics:
+    description: Add Prometheus and Grafana to the topology.
+    required: false
+    default: "false"
+  working-directory:
+    description: Where to run the build. It must be in a workspace, a remotive.yaml at or above it (`remotive topology workspace init`).
+    required: false
+    default: "."
+
+outputs:
+  path:
+    description: The directory the topology was built in.
+    value: ${{ steps.build.outputs.path }}
+
+runs:
+  using: composite
+  steps:
+    - name: Build the topology
+      id: build
+      shell: bash
+      working-directory: ${{ inputs.working-directory }}
+      env:
+        FILES: ${{ inputs.files }}
+        NAME: ${{ inputs.name }}
+        OUTPUT: ${{ inputs.output }}
+        WITH_METRICS: ${{ inputs.with-metrics }}
+      run: |
+        if ! command -v remotive >/dev/null; then
+          echo "::error::the RemotiveCLI is not installed: run remotivelabs/remotivelabs-topology-actions/setup first"
+          exit 1
+        fi
+        args=()
+        set -f  # file names as written, not expanded as patterns
+        for file in $FILES; do args+=(--file "$file"); done
+        set +f
+        if [ "${#args[@]}" -eq 0 ]; then
+          echo "::error::files names no instance file"
+          exit 1
+        fi
+        if [ -n "$NAME" ]; then args+=(--name "$NAME"); fi
+        case "$WITH_METRICS" in
+          true | True | TRUE) args+=(--with-metrics) ;;
+          false | False | FALSE | "") ;;
+          *) echo "::error::with-metrics is true or false, not $WITH_METRICS"; exit 1 ;;
+        esac
+        remotive topology build "${args[@]}" "$OUTPUT" 2>&1 | tee "$RUNNER_TEMP/topology-build.log"
+        built=$(sed -n 's/^Built topology at: //p' "$RUNNER_TEMP/topology-build.log" | tail -1)
+        if [ -z "$built" ]; then
+          echo "::error::remotive topology build did not say where it built the topology"
+          exit 1
+        fi
+        echo "path=$built" >> "$GITHUB_OUTPUT"
+
+branding:
+  icon: 'share-2'
+  color: 'blue'

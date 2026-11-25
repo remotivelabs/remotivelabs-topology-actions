@@ -1,5 +1,5 @@
-name: RemotiveTopology generate
-description: Generate a Docker Compose file from one or more RemotiveTopology description files
+name: RemotiveTopology generate (deprecated)
+description: "[DEPRECATED] Use the setup, auth and build actions instead. Generate a Docker Compose file from one or more RemotiveTopology description files"
 
 inputs:
   version:
@@ -31,6 +31,10 @@ inputs:
 runs:
   using: composite
   steps:
+    - shell: bash
+      run: |
+        echo "::warning::remotivelabs-topology-actions/generate is deprecated: use the setup, auth and build actions instead, as its README shows"
+
     - run: docker pull remotivelabs/remotive-topology:${{ inputs.version }}
       shell: bash
 
