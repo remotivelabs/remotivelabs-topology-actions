@@ -27,7 +27,23 @@ tools:
     version: "0.49.1"
 ```
 
-RemotiveBus is not installed: a CI runner has no CAN.
+## RemotiveBus
+
+RemotiveBus is not installed unless `remotivebus` is `true`. A topology whose CAN channels use
+RemotiveBus, the default CAN driver, needs it; one that uses
+[UDP emulation](https://developer.remotivelabs.com/docs/remotive-topology/usage/channels/can#emulation-using-udp)
+does not.
+
+```yaml
+- uses: remotivelabs/remotivelabs-topology-actions/setup@<commit-sha>
+  with:
+    remotivebus: true
+```
+
+The action loads the CAN kernel modules RemotiveBus needs (`vcan`, `vxcan`, `can-gw`), installing
+`linux-modules-extra` for the running kernel when they are missing, then installs RemotiveBus with
+the Toolchain Manager: `remotivebus-version`, else the latest. It needs Linux and sudo, as on
+GitHub-hosted Ubuntu runners; on macOS the step fails.
 
 ## Toolchain Manager
 
@@ -57,6 +73,12 @@ To move the pin (Dependabot cannot):
     # Exact Toolchain Manager version, 0.0.18 or newer; not empty.
     # Default: the version action.yml pins
     toolchain-manager-version: "0.0.18"
+    # true: also install RemotiveBus and load the CAN kernel modules. Linux only.
+    # Default: false
+    remotivebus: false
+    # Exact RemotiveBus version when remotivebus is true. Empty: the latest.
+    # Default: ""
+    remotivebus-version: ""
 ```
 
 The version that runs is the output `cli-version`.
