@@ -2,18 +2,17 @@ name: Set up RemotiveLabs tools
 description: >
   Install the RemotiveLabs Toolchain Manager, the version `toolchain-manager-version` gives, and, with
   it, the RemotiveCLI as `remotive` on the PATH.
-  The RemotiveCLI version is `cli-version` when given; otherwise the one the workspace's remotive.yaml
-  pins (`tools.cli.version`); otherwise the latest release.
+  As with the Toolchain Manager, a workspace runs the version its remotive.yaml pins
+  (`tools.cli.version`); elsewhere the default runs: `cli-version`, else the latest release.
 
 inputs:
   cli-version:
     description: >
-      Exact RemotiveCLI version, such as 0.49.1, made the default. Inside a workspace that pins
-      another version, the pin runs there. Empty: the version the workspace at or above
-      `working-directory` pins, else the latest.
+      Exact RemotiveCLI version, such as 0.49.1, made the default: the version that runs outside a
+      workspace. A workspace's pin always runs there. Empty: the latest release.
     default: ""
   working-directory:
-    description: Where to look for the workspace's remotive.yaml when `cli-version` is empty.
+    description: Where to look for the workspace's remotive.yaml, at or above it.
     default: "."
   toolchain-manager-version:
     description: >
@@ -50,12 +49,9 @@ runs:
         CLI_VERSION: ${{ inputs.cli-version }}
       run: |
         export PATH="$HOME/.local/bin:$PATH"
-        if [ -n "$CLI_VERSION" ]; then
-          remotive toolchain cli install "$CLI_VERSION" --default
-        else
-          # The version the workspace pins, else the latest
-          remotive toolchain install --no-remotivebus
-        fi
+        if [ -n "$CLI_VERSION" ]; then remotive toolchain cli install "$CLI_VERSION" --default; fi
+        # The version the workspace pins; elsewhere the latest, when no version is installed
+        remotive toolchain install --no-remotivebus
         remotive toolchain current
         echo "version=$(remotive toolchain current --json | jq -r .cli.version)" >> "$GITHUB_OUTPUT"
 
