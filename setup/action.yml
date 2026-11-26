@@ -1,19 +1,26 @@
 name: Set up RemotiveLabs tools
 description: >
-  Install the RemotiveLabs Toolchain Manager and, with it, the RemotiveCLI as `remotive` on the PATH.
-  The RemotiveCLI version is `cli-version` when given; otherwise the one the workspace's remotive.yaml
-  pins (`tools.cli.version`); otherwise the newest release its `requires-version` allows; otherwise,
-  on a runner with no RemotiveCLI yet, the latest release.
+  Install the RemotiveLabs Toolchain Manager, the version `toolchain-manager-version` gives, and, with
+  it, the RemotiveCLI as `remotive` on the PATH.
+  As with the Toolchain Manager, a workspace runs the version its remotive.yaml pins
+  (`tools.cli.version`); elsewhere the default runs: `cli-version`, else the latest release on a runner with no
+  RemotiveCLI installed yet.
 
 inputs:
   cli-version:
     description: >
-      Exact RemotiveCLI version, such as 0.49.1. Empty: the version the workspace at or above
-      `working-directory` pins, else the newest release its requires-version allows, else the latest.
+      Exact RemotiveCLI version, such as 0.49.1, made the default: the version that runs outside a
+      workspace. A workspace's pin always runs there. Empty: the latest release, on a runner with no
+      RemotiveCLI installed yet; otherwise its default stays.
     default: ""
   working-directory:
-    description: Where to look for the workspace's remotive.yaml when `cli-version` is empty.
+    description: Where to look for the workspace's remotive.yaml, at or above it.
     default: "."
+  toolchain-manager-version:
+    description: >
+      Exact Toolchain Manager version, 0.0.18 or newer; not empty. The default is the one this action
+      is tested with.
+    default: "0.0.18"
 
 outputs:
   cli-version:
@@ -23,18 +30,17 @@ outputs:
 runs:
   using: composite
   steps:
-    # For this user, without root: RemotiveBus is left out, as CI has no CAN. The script is checked
-    # against the checksum published beside it before it runs, so a truncated download never runs.
+    # The version given, for this user, without root: RemotiveBus is left out, as CI has no CAN. The
+    # script checks the Toolchain Manager against its signed checksum.
     - name: Install the Toolchain Manager
       shell: bash
       env:
-        INSTALLER: https://files.remotivelabs.com/remotivelabs-cli/install-launcher.sh
+        INSTALLER: https://files.remotivelabs.com/install-rtm.sh
+        MANAGER_VERSION: ${{ inputs.toolchain-manager-version }}
       run: |
         cd "$RUNNER_TEMP"
-        curl --proto '=https' --tlsv1.2 -fsSL "$INSTALLER" -o install-launcher.sh
-        curl --proto '=https' --tlsv1.2 -fsSL "$INSTALLER.sha256" -o install-launcher.sh.sha256
-        if command -v sha256sum >/dev/null; then sha256sum -c install-launcher.sh.sha256; else shasum -a 256 -c install-launcher.sh.sha256; fi
-        bash install-launcher.sh --user --no-remotivebus --replace
+        curl --proto '=https' --tlsv1.2 -fsSL "$INSTALLER" -o install-rtm.sh
+        bash install-rtm.sh --user --no-remotivebus --replace "${MANAGER_VERSION:?toolchain-manager-version is empty}"
         echo "$HOME/.local/bin" >> "$GITHUB_PATH"
 
     - name: Install the RemotiveCLI
@@ -45,60 +51,12 @@ runs:
         CLI_VERSION: ${{ inputs.cli-version }}
       run: |
         export PATH="$HOME/.local/bin:$PATH"
-        # The version the workspace pins, as the Toolchain Manager reads it; empty when none
-        pinned=""
-        if command -v python3 >/dev/null; then
-          read_pin='import json, sys; cli = json.load(sys.stdin)["cli"]; print(cli["version"] if (cli.get("why") or {}).get("kind") == "workspace" else "")'
-          if ! pinned=$(remotive toolchain current --json | python3 -c "$read_pin"); then
-            pinned=""
-            echo "::warning::could not read from the Toolchain Manager whether the workspace pins a version"
-          fi
-        fi
-
-        if [ -n "$CLI_VERSION" ]; then
-          if ! [[ "$CLI_VERSION" =~ ^[0-9][0-9A-Za-z.+!-]*$ ]]; then
-            echo "::error::cli-version is not a version: $CLI_VERSION"
-            exit 1
-          fi
-          if [ -n "$pinned" ] && [ "$pinned" != "$CLI_VERSION" ]; then
-            echo "::warning::the workspace pins RemotiveCLI $pinned, which runs in the workspace; $CLI_VERSION runs outside it"
-          fi
-          remotive toolchain cli install "$CLI_VERSION" --default
-        elif [ -n "$pinned" ]; then
-          remotive toolchain install --no-remotivebus
-        elif ! command -v python3 >/dev/null; then
-          echo "::warning::python3 is not installed: the workspace's requires-version is not read, give cli-version"
-          remotive toolchain install --no-remotivebus
-        else
-          # The Toolchain Manager does not read requires-version, which the CLI checks: install the
-          # newest release it allows
-          allowed=$(python3 "$GITHUB_ACTION_PATH/workspace_versions.py" .)
-          if [ -z "$allowed" ]; then
-            remotive toolchain install --no-remotivebus
-          else
-            installed=""
-            for version in $allowed; do
-              if remotive toolchain cli install "$version" --default 2> "$RUNNER_TEMP/cli-install.err"; then
-                installed=$version
-                break
-              fi
-              cat "$RUNNER_TEMP/cli-install.err" >&2
-              # A release from before the Toolchain Manager has no bundle for it: take the next one.
-              # Any other failure, such as the network, fails the step rather than install an older one.
-              if ! grep -q "isn't available through the Toolchain Manager" "$RUNNER_TEMP/cli-install.err"; then
-                echo "::error::RemotiveCLI $version could not be installed"
-                exit 1
-              fi
-              echo "::warning::RemotiveCLI $version has no Toolchain Manager bundle; trying the next version requires-version allows"
-            done
-            if [ -z "$installed" ]; then
-              echo "::error::no RemotiveCLI version that requires-version allows could be installed: $allowed"
-              exit 1
-            fi
-          fi
-        fi
+        if [ -n "$CLI_VERSION" ]; then remotive toolchain cli install "$CLI_VERSION" --default; fi
+        # The version the workspace pins; elsewhere the latest, when no version is installed
+        remotive toolchain install --no-remotivebus
         remotive toolchain current
-        echo "version=$(remotive --version | awk '{print $2; exit}')" >> "$GITHUB_OUTPUT"
+        version=$(remotive toolchain current --json | jq -er .cli.version)
+        echo "version=$version" >> "$GITHUB_OUTPUT"
 
 branding:
   icon: 'download'

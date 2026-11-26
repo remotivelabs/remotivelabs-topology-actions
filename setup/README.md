@@ -5,20 +5,20 @@ Toolchain Manager, as `remotive` on the `PATH` of the steps that follow.
 
 ## Which version
 
-The first that applies:
+As with the Toolchain Manager:
 
-1. `cli-version`, when given. Outside a workspace that pins its version: inside one, the pin runs,
-   and the action warns.
-2. `tools.cli.version` in the workspace's `remotive.yaml`: the first workspace at or above
-   `working-directory`.
-3. The newest release the workspace's
-   [`requires-version`](https://developer.remotivelabs.com/apis/json/workspace#requires-version)
-   allows, such as `">=0.47,<1.0"`.
-4. The latest release, on a runner with no RemotiveCLI installed yet.
+1. In a workspace, the version its `remotive.yaml` pins (`tools.cli.version`): the first workspace at
+   or above `working-directory`. Nothing overrides it, `cli-version` neither.
+2. Elsewhere, the default: `cli-version` when given, else the latest release on a runner with no
+   RemotiveCLI installed yet. A runner that has one, such as a self-hosted runner, keeps its default:
+   give `cli-version` to be sure.
 
-A workspace that pins its version runs the same RemotiveCLI locally and in CI, from one place. A
-workspace that gives a range with `requires-version` gets the newest release in it, which every
-command in the workspace then accepts.
+The action ignores
+[`requires-version`](https://developer.remotivelabs.com/apis/json/workspace#requires-version): the
+RemotiveCLI checks it itself when it runs. Pin a version it allows in `tools.cli.version`.
+
+The Toolchain Manager installs RemotiveCLI 0.45.5 and later. If the version cannot be installed, the
+step fails.
 
 ```yaml
 # remotive.yaml
@@ -29,21 +29,34 @@ tools:
 
 RemotiveBus is not installed: a CI runner has no CAN.
 
-The Toolchain Manager's install script is checked against the checksum published beside it, so a
-truncated download never runs. The RemotiveCLI it installs is checked against signed checksums.
+## Toolchain Manager
+
+The action installs the Toolchain Manager version `toolchain-manager-version` gives, 0.0.18 or newer;
+the default is pinned in [`action.yml`](action.yml). Its install script checks the Toolchain Manager,
+and the Toolchain Manager each RemotiveCLI, against signed checksums.
+
+To move the pin (Dependabot cannot):
+
+1. Read the latest version from
+   `https://files.remotivelabs.com/remotive-toolchain-manager/latest/latest-version.txt`.
+2. Set it as the default in `action.yml`, in the usage below and in
+   [`test_setup.yaml`](../.github/workflows/test_setup.yaml).
+3. Open a pull request: its CI installs it on Linux and macOS.
 
 ## Usage
 
 ```yaml
 - uses: remotivelabs/remotivelabs-topology-actions/setup@<commit-sha>
   with:
-    # Exact RemotiveCLI version. Empty: the workspace's pin, else the newest release its
-    # requires-version allows, else the latest release.
+    # Exact RemotiveCLI version, the default outside a workspace. Empty: the latest release, on a runner with none yet.
     # Default: ""
     cli-version: ""
-    # Where to look for remotive.yaml when cli-version is empty.
+    # Where to look for remotive.yaml, at or above it.
     # Default: .
     working-directory: ""
+    # Exact Toolchain Manager version, 0.0.18 or newer; not empty.
+    # Default: the version action.yml pins
+    toolchain-manager-version: "0.0.18"
 ```
 
 The version that runs is the output `cli-version`.

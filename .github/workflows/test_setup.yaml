@@ -15,7 +15,7 @@ jobs:
         os: [ubuntu-latest, ubuntu-24.04-arm, macos-latest]
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
 
       - name: A version given
         id: given
@@ -29,6 +29,21 @@ jobs:
         run: |
           remotive --version
           test "$RAN" = "0.48.0"
+          test "$(remotive toolchain --version)" = "RemotiveLabs Toolchain Manager 0.0.18"
+
+      - name: A version that is not available
+        id: unavailable
+        continue-on-error: true
+        uses: ./setup
+        with:
+          cli-version: "9.9.9"
+      - name: Verify it fails, and the default is unchanged
+        shell: bash
+        env:
+          OUTCOME: ${{ steps.unavailable.outcome }}
+        run: |
+          test "$OUTCOME" = "failure"
+          test "$(remotive --version | awk '{print $2; exit}')" = "0.48.0"
 
       - name: Pin a version in a workspace
         shell: bash
@@ -49,19 +64,39 @@ jobs:
           remotive --version
           test "$RAN" = "0.47.0"
 
-      - name: Allow a range in a workspace
-        shell: bash
-        run: |
-          mkdir -p "$RUNNER_TEMP/ranged"
-          printf 'requires-version: ">=0.45,<0.47"\n' > "$RUNNER_TEMP/ranged/remotive.yaml"
-      - name: The newest release in the workspace's range
-        id: ranged
+      - name: A version given, in a workspace that pins another
+        id: both
         uses: ./setup
         with:
-          working-directory: ${{ runner.temp }}/ranged
-      - name: Verify the newest release in the range runs
+          cli-version: "0.49.1"
+          working-directory: ${{ runner.temp }}/workspace/sub
+      - name: Verify the pin runs in the workspace, and the version given elsewhere
+        shell: bash
+        working-directory: ${{ runner.temp }}/workspace/sub
+        env:
+          RAN: ${{ steps.both.outputs.cli-version }}
+        run: |
+          test "$RAN" = "0.47.0"
+          cd "$GITHUB_WORKSPACE" && test "$(remotive --version | awk '{print $2; exit}')" = "0.49.1"
+
+  test_toolchain_manager_version:
+    runs-on: ubuntu-latest
+    name: Test setup action with a Toolchain Manager version given
+
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      # Not published: a step that ignored the input would install the default
+      - name: A Toolchain Manager version given
+        id: given
+        continue-on-error: true
+        uses: ./setup
+        with:
+          toolchain-manager-version: "999.0.0"
+      - name: Verify it is used
         shell: bash
         env:
-          RAN: ${{ steps.ranged.outputs.cli-version }}
+          OUTCOME: ${{ steps.given.outcome }}
         run: |
-          case "$RAN" in 0.46.*) ;; *) echo "ran $RAN"; exit 1 ;; esac
+          test "$OUTCOME" = "failure"
+          test ! -e "$HOME/.local/bin/remotive"
