@@ -63,8 +63,6 @@ jobs:
         run: |
           remotive --version
           test "$RAN" = "0.47.0"
-          # Outside the workspace, the latest is now the default, no longer 0.48.0
-          cd "$GITHUB_WORKSPACE" && test "$(remotive --version | awk '{print $2; exit}')" != "0.48.0"
 
   test_toolchain_manager_version:
     runs-on: ubuntu-latest

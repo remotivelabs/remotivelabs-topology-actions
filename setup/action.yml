@@ -30,8 +30,7 @@ runs:
   using: composite
   steps:
     # The version given, for this user, without root: RemotiveBus is left out, as CI has no CAN. The
-    # script is checked against the checksum published beside it before it runs, so a truncated
-    # download never runs. The script checks the Toolchain Manager against its signed checksum.
+    # script checks the Toolchain Manager against its signed checksum.
     - name: Install the Toolchain Manager
       shell: bash
       env:
@@ -40,8 +39,6 @@ runs:
       run: |
         cd "$RUNNER_TEMP"
         curl --proto '=https' --tlsv1.2 -fsSL "$INSTALLER" -o install-rtm.sh
-        curl --proto '=https' --tlsv1.2 -fsSL "$INSTALLER.sha256" -o install-rtm.sh.sha256
-        if command -v sha256sum >/dev/null; then sha256sum -c install-rtm.sh.sha256; else shasum -a 256 -c install-rtm.sh.sha256; fi
         bash install-rtm.sh --user --no-remotivebus --replace "$MANAGER_VERSION"
         echo "$HOME/.local/bin" >> "$GITHUB_PATH"
 
@@ -53,22 +50,14 @@ runs:
         CLI_VERSION: ${{ inputs.cli-version }}
       run: |
         export PATH="$HOME/.local/bin:$PATH"
-        status=0
         if [ -n "$CLI_VERSION" ]; then
-          remotive toolchain cli install "$CLI_VERSION" --default || status=$?
+          remotive toolchain cli install "$CLI_VERSION" --default
         else
-          # The latest as the default, and the version the workspace pins
-          { remotive toolchain cli install latest --default && remotive toolchain install --no-remotivebus; } || status=$?
-        fi
-        if [ "$status" -ne 0 ]; then
-          # 69: the Toolchain Manager has no bundle for the version
-          hint=""
-          if [ "$status" -eq 69 ]; then hint=" (the Toolchain Manager has no bundle for this version)"; fi
-          echo "::error::RemotiveCLI${CLI_VERSION:+ $CLI_VERSION} could not be installed through the Toolchain Manager$hint"
-          exit 1
+          # The version the workspace pins, else the latest
+          remotive toolchain install --no-remotivebus
         fi
         remotive toolchain current
-        echo "version=$(remotive --version | awk '{print $2; exit}')" >> "$GITHUB_OUTPUT"
+        echo "version=$(remotive toolchain current --json | jq -r .cli.version)" >> "$GITHUB_OUTPUT"
 
 branding:
   icon: 'download'

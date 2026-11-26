@@ -32,9 +32,8 @@ RemotiveBus is not installed: a CI runner has no CAN.
 ## Toolchain Manager
 
 The action installs the Toolchain Manager version `toolchain-manager-version` gives, 0.0.18 or newer;
-the default is pinned in [`action.yml`](action.yml). Its install script is checked against the
-checksum published beside it, which only catches a broken download; the script then checks the
-Toolchain Manager, and the Toolchain Manager each RemotiveCLI, against signed checksums.
+the default is pinned in [`action.yml`](action.yml). Its install script checks the Toolchain Manager,
+and the Toolchain Manager each RemotiveCLI, against signed checksums.
 
 To move the pin (Dependabot cannot):
 
