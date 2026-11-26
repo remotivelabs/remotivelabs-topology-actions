@@ -6,7 +6,7 @@ Reusable GitHub Actions used across RemotiveLabs CI pipelines.
 
 | Action | Description |
 |---|---|
-| [`setup`](setup/README.md) | Install the RemotiveCLI with the RemotiveLabs Toolchain Manager: the version given, the one the workspace's `remotive.yaml` pins, the newest its `requires-version` allows, else the latest. |
+| [`setup`](setup/README.md) | Install the RemotiveCLI with the RemotiveLabs Toolchain Manager: the version given, or the one the workspace's `remotive.yaml` pins, else the latest. |
 | [`auth`](auth/README.md) | Make a RemotiveCloud service account the account of the job's later steps, from secrets given as inputs. |
 | [`build`](build/README.md) | Build a RemotiveTopology environment from instance files with `remotive topology build`. |
 | [`generate`](generate/README.md) | **Deprecated**, use `setup`, `auth` and `build`. Generate a Docker Compose file from one or more RemotiveTopology description files with the RemotiveTopology container. |

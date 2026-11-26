@@ -7,18 +7,18 @@ Toolchain Manager, as `remotive` on the `PATH` of the steps that follow.
 
 The first that applies:
 
-1. `cli-version`, when given. Outside a workspace that pins its version: inside one, the pin runs,
-   and the action warns.
+1. `cli-version`, when given. Inside a workspace that pins another version, the pin runs there.
 2. `tools.cli.version` in the workspace's `remotive.yaml`: the first workspace at or above
    `working-directory`.
-3. The newest release the workspace's
-   [`requires-version`](https://developer.remotivelabs.com/apis/json/workspace#requires-version)
-   allows, such as `">=0.47,<1.0"`.
-4. The latest release, on a runner with no RemotiveCLI installed yet.
+3. The latest release.
 
-A workspace that pins its version runs the same RemotiveCLI locally and in CI, from one place. A
-workspace that gives a range with `requires-version` gets the newest release in it, which every
-command in the workspace then accepts.
+The action ignores
+[`requires-version`](https://developer.remotivelabs.com/apis/json/workspace#requires-version): the
+RemotiveCLI checks it itself when it runs. Give `cli-version` or `tools.cli.version` to choose a
+version it allows.
+
+The Toolchain Manager installs RemotiveCLI 0.45.5 and later. If the version cannot be installed, the
+step fails.
 
 ```yaml
 # remotive.yaml
@@ -49,8 +49,7 @@ To move the pin (Dependabot cannot):
 ```yaml
 - uses: remotivelabs/remotivelabs-topology-actions/setup@<commit-sha>
   with:
-    # Exact RemotiveCLI version. Empty: the workspace's pin, else the newest release its
-    # requires-version allows, else the latest release.
+    # Exact RemotiveCLI version. Empty: the workspace's pin, else the latest release.
     # Default: ""
     cli-version: ""
     # Where to look for remotive.yaml when cli-version is empty.

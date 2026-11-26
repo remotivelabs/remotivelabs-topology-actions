@@ -31,6 +31,20 @@ jobs:
           test "$RAN" = "0.48.0"
           test "$(remotive toolchain --version)" = "RemotiveLabs Toolchain Manager 0.0.18"
 
+      - name: A version that is not available
+        id: unavailable
+        continue-on-error: true
+        uses: ./setup
+        with:
+          cli-version: "9.9.9"
+      - name: Verify it fails, and the default is unchanged
+        shell: bash
+        env:
+          OUTCOME: ${{ steps.unavailable.outcome }}
+        run: |
+          test "$OUTCOME" = "failure"
+          test "$(remotive --version | awk '{print $2; exit}')" = "0.48.0"
+
       - name: Pin a version in a workspace
         shell: bash
         run: |
@@ -49,23 +63,8 @@ jobs:
         run: |
           remotive --version
           test "$RAN" = "0.47.0"
-
-      - name: Allow a range in a workspace
-        shell: bash
-        run: |
-          mkdir -p "$RUNNER_TEMP/ranged"
-          printf 'requires-version: ">=0.45,<0.47"\n' > "$RUNNER_TEMP/ranged/remotive.yaml"
-      - name: The newest release in the workspace's range
-        id: ranged
-        uses: ./setup
-        with:
-          working-directory: ${{ runner.temp }}/ranged
-      - name: Verify the newest release in the range runs
-        shell: bash
-        env:
-          RAN: ${{ steps.ranged.outputs.cli-version }}
-        run: |
-          case "$RAN" in 0.46.*) ;; *) echo "ran $RAN"; exit 1 ;; esac
+          # Outside the workspace, the latest is now the default, no longer 0.48.0
+          cd "$GITHUB_WORKSPACE" && test "$(remotive --version | awk '{print $2; exit}')" != "0.48.0"
 
   test_toolchain_manager_version:
     runs-on: ubuntu-latest
