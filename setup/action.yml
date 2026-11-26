@@ -1,6 +1,7 @@
 name: Set up RemotiveLabs tools
 description: >
-  Install the RemotiveLabs Toolchain Manager and, with it, the RemotiveCLI as `remotive` on the PATH.
+  Install the RemotiveLabs Toolchain Manager, the version `toolchain-manager-version` gives, and, with
+  it, the RemotiveCLI as `remotive` on the PATH.
   The RemotiveCLI version is `cli-version` when given; otherwise the one the workspace's remotive.yaml
   pins (`tools.cli.version`); otherwise the newest release its `requires-version` allows; otherwise,
   on a runner with no RemotiveCLI yet, the latest release.
@@ -14,6 +15,11 @@ inputs:
   working-directory:
     description: Where to look for the workspace's remotive.yaml when `cli-version` is empty.
     default: "."
+  toolchain-manager-version:
+    description: >
+      Exact Toolchain Manager version, 0.0.18 or newer; not empty. The default is the one this action
+      is tested with.
+    default: "0.0.18"
 
 outputs:
   cli-version:
@@ -23,18 +29,20 @@ outputs:
 runs:
   using: composite
   steps:
-    # For this user, without root: RemotiveBus is left out, as CI has no CAN. The script is checked
-    # against the checksum published beside it before it runs, so a truncated download never runs.
+    # The version given, for this user, without root: RemotiveBus is left out, as CI has no CAN. The
+    # script is checked against the checksum published beside it before it runs, so a truncated
+    # download never runs. The script checks the Toolchain Manager against its signed checksum.
     - name: Install the Toolchain Manager
       shell: bash
       env:
-        INSTALLER: https://files.remotivelabs.com/remotivelabs-cli/install-launcher.sh
+        INSTALLER: https://files.remotivelabs.com/install-rtm.sh
+        MANAGER_VERSION: ${{ inputs.toolchain-manager-version }}
       run: |
         cd "$RUNNER_TEMP"
-        curl --proto '=https' --tlsv1.2 -fsSL "$INSTALLER" -o install-launcher.sh
-        curl --proto '=https' --tlsv1.2 -fsSL "$INSTALLER.sha256" -o install-launcher.sh.sha256
-        if command -v sha256sum >/dev/null; then sha256sum -c install-launcher.sh.sha256; else shasum -a 256 -c install-launcher.sh.sha256; fi
-        bash install-launcher.sh --user --no-remotivebus --replace
+        curl --proto '=https' --tlsv1.2 -fsSL "$INSTALLER" -o install-rtm.sh
+        curl --proto '=https' --tlsv1.2 -fsSL "$INSTALLER.sha256" -o install-rtm.sh.sha256
+        if command -v sha256sum >/dev/null; then sha256sum -c install-rtm.sh.sha256; else shasum -a 256 -c install-rtm.sh.sha256; fi
+        bash install-rtm.sh --user --no-remotivebus --replace "$MANAGER_VERSION"
         echo "$HOME/.local/bin" >> "$GITHUB_PATH"
 
     - name: Install the RemotiveCLI

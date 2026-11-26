@@ -29,8 +29,20 @@ tools:
 
 RemotiveBus is not installed: a CI runner has no CAN.
 
-The Toolchain Manager's install script is checked against the checksum published beside it, so a
-truncated download never runs. The RemotiveCLI it installs is checked against signed checksums.
+## Toolchain Manager
+
+The action installs the Toolchain Manager version `toolchain-manager-version` gives, 0.0.18 or newer;
+the default is pinned in [`action.yml`](action.yml). Its install script is checked against the
+checksum published beside it, which only catches a broken download; the script then checks the
+Toolchain Manager, and the Toolchain Manager each RemotiveCLI, against signed checksums.
+
+To move the pin (Dependabot cannot):
+
+1. Read the latest version from
+   `https://files.remotivelabs.com/remotive-toolchain-manager/latest/latest-version.txt`.
+2. Set it as the default in `action.yml`, in the usage below and in
+   [`test_setup.yaml`](../.github/workflows/test_setup.yaml).
+3. Open a pull request: its CI installs it on Linux and macOS.
 
 ## Usage
 
@@ -44,6 +56,9 @@ truncated download never runs. The RemotiveCLI it installs is checked against si
     # Where to look for remotive.yaml when cli-version is empty.
     # Default: .
     working-directory: ""
+    # Exact Toolchain Manager version, 0.0.18 or newer; not empty.
+    # Default: the version action.yml pins
+    toolchain-manager-version: "0.0.18"
 ```
 
 The version that runs is the output `cli-version`.
