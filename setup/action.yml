@@ -4,6 +4,7 @@ description: >
   it, the RemotiveCLI as `remotive` on the PATH.
   As with the Toolchain Manager, a workspace runs the version its remotive.yaml pins
   (`tools.cli.version`); elsewhere the default runs: `cli-version`, else the latest release.
+  With `remotivebus`, also RemotiveBus, to run topologies whose CAN channels use it (Linux only).
 
 inputs:
   cli-version:
@@ -19,6 +20,15 @@ inputs:
       Exact Toolchain Manager version, 0.0.18 or newer; not empty. The default is the one this action
       is tested with.
     default: "0.0.18"
+  remotivebus:
+    description: >
+      `true` to also install RemotiveBus and load the CAN kernel modules it needs, for topologies whose
+      CAN channels use RemotiveBus. Linux only; needs sudo.
+    default: "false"
+  remotivebus-version:
+    description: >
+      Exact RemotiveBus version, such as 0.12.0, when `remotivebus` is `true`. Empty: the latest.
+    default: ""
 
 outputs:
   cli-version:
@@ -28,8 +38,8 @@ outputs:
 runs:
   using: composite
   steps:
-    # The version given, for this user, without root: RemotiveBus is left out, as CI has no CAN. The
-    # script checks the Toolchain Manager against its signed checksum.
+    # The version given, for this user, without root; RemotiveBus, if wanted, comes after. The script
+    # checks the Toolchain Manager against its signed checksum.
     - name: Install the Toolchain Manager
       shell: bash
       env:
@@ -54,6 +64,29 @@ runs:
         remotive toolchain install --no-remotivebus
         remotive toolchain current
         echo "version=$(remotive toolchain current --json | jq -r .cli.version)" >> "$GITHUB_OUTPUT"
+
+    # RemotiveBus is one package for the machine, so its install script asks for root itself. It only
+    # warns about missing kernel modules: they are loaded here. Kernels from 7.0 ship vcan in
+    # linux-modules; older runner images need linux-modules-extra.
+    - name: Install RemotiveBus
+      if: inputs.remotivebus == 'true'
+      shell: bash
+      env:
+        VERSION: ${{ inputs.remotivebus-version }}
+      run: |
+        export PATH="$HOME/.local/bin:$PATH"
+        if [ "$RUNNER_OS" != "Linux" ]; then
+          echo "::error::RemotiveBus runs only on Linux, not on $RUNNER_OS"
+          exit 1
+        fi
+        modules=(vcan vxcan can-gw)
+        if ! sudo modprobe -a "${modules[@]}"; then
+          sudo apt-get update
+          sudo apt-get install -y "linux-modules-extra-$(uname -r)"
+          sudo modprobe -a "${modules[@]}"
+        fi
+        remotive toolchain remotivebus install ${VERSION:+"$VERSION"}
+        remotive toolchain current
 
 branding:
   icon: 'download'

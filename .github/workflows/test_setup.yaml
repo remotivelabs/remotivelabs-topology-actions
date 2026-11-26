@@ -85,3 +85,47 @@ jobs:
         run: |
           test "$OUTCOME" = "failure"
           test ! -e "$HOME/.local/bin/remotive"
+
+  test_remotivebus:
+    runs-on: ${{ matrix.os }}
+    name: Test setup action with RemotiveBus (${{ matrix.os }})
+
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, ubuntu-24.04-arm]
+
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - name: A RemotiveBus version given
+        uses: ./setup
+        with:
+          remotivebus: true
+          remotivebus-version: "0.12.0"
+      - name: Verify it runs, with the CAN modules loaded
+        shell: bash
+        run: |
+          test "$(remotivebus --version)" = "remotivebus 0.12.0"
+          systemctl is-active remotivebusd
+          sudo test -S /run/docker/plugins/remotivebus.sock  # the directory is root's
+          for module in vcan vxcan can_gw; do grep -q "^$module " /proc/modules; done
+
+  test_remotivebus_not_on_macos:
+    runs-on: macos-latest
+    name: Test setup action with RemotiveBus on macOS
+
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - name: RemotiveBus asked for
+        id: asked
+        continue-on-error: true
+        uses: ./setup
+        with:
+          remotivebus: true
+      - name: Verify it fails
+        shell: bash
+        env:
+          OUTCOME: ${{ steps.asked.outcome }}
+        run: test "$OUTCOME" = "failure"
